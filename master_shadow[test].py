@@ -406,11 +406,32 @@ def ConnectingAndGetDataFromMaster():
     PORT = 54321  # The port used by the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
-        print('Connected!')
-        time.sleep(5)
-        print('Current time is :', time.time())
-        time.sleep(5)
-        print("Socket Connection is closed")
+        while True:
+
+            s.send(b'Hi could you send me data?')
+            # print('Connected!')
+            # time.sleep(5)
+            # print('Current time is :', time.time())
+            # time.sleep(5)
+            # print("Socket Connection is closed")
+            data = s.recv(1024)
+            if data.startswith(b'{'):
+                # data = s.recv(1024)
+                print('json data')
+                print(data)
+                # data = data.decode('utf-8')
+                # with open(globaluserlist, 'w') as f:
+                #     json.dump(data, f)
+                # data = data.encode('utf-8')
+                # sock.sendall(data)
+                # If the data is start with nothing. (which means heartbeat data)
+            elif data.startswith(b''):
+                # Send the data to the client
+                # update_hearbeat(data.decode())
+                # sock.sendall(data)
+                # data = s.recv(1024)
+                print('text data')
+                print(data)
 
     # This Functions are should run when connection is closed accidently
 

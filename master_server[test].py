@@ -337,7 +337,7 @@ def SendDataToShadowMaster():
     # Set the socket to non-blocking mode
     server_socket.setblocking(False)
 
-    server_address = ('localhost', ListeningShadowMasterSserverPort)
+    server_address = ('localhost', ListeningShadowMasterSserverPort)  # 54321
     server_socket.bind(server_address)
     server_socket.listen(1)   # Maximum number of connections
 
@@ -358,28 +358,29 @@ def SendDataToShadowMaster():
                 print(f"Connected by Shadowserver {client_address}")
                 sockets_to_monitor.append(client_socket)
             else:
-                # An existing client sent data or closed the connection
-                # Update by append?
-                # How to update the global user list?
-                data = sock.recv(1024)
-                if data:
-                    # print(f"Received data from client {client_address}: {data}")
-                    # This format will be json format
+                jsonfileopen = open('GlobalUserList.json')
+                result = json.load(jsonfileopen)
+                Globaluserlistdata = str(result)         # Change into string.
 
-                    # [ISSUE] How to save the data into globaluserlist.json ?
-                    if data.startswith(b'{'):
-                        # data = data.decode('utf-8')
-                        # with open(globaluserlist, 'w') as f:
-                        #     json.dump(data, f)
-                        # data = data.encode('utf-8')
-                        # sock.sendall(data)
-                        # If the data is start with nothing. (which means heartbeat data)
-                        print('{ data')
-                    elif data.startswith(b''):
-                        # # Send the data to the client
-                        # update_hearbeat(data.decode())
-                        # sock.sendall(data)
-                        print(' data')
+                data = sock.recv(1024)
+                # Once you got initialization data from the shadow master, start sending the globaruser list and hearbeat regularlly
+
+                if data:
+                    # print(data)
+                    sock.send(Globaluserlistdata.encode())
+                    print('Successfully sent json')
+                    # # data = sock.recv(1024)
+                    # # print(data)
+                    with open('heartbeat.txt') as textfileopen:
+                        contents = textfileopen.read()
+                        # print(contents)
+
+                    sock.send(contents.encode())
+                    print('Successfully sent text')
+                    # data = sock.recv(1024)
+                    # print(data)
+                    time.sleep(20)
+
                 else:
                     print(
                         f"Connection closed by Shadowserver {client_address}")
@@ -391,8 +392,9 @@ def SendDataToShadowMaster():
 def ShadowMasterServer_ClientSide():
     print('Hi, I am a shadow Master')
 
-
 # [Issue] What is the join() for?
+
+
 def WhenServerIsOn():
     t1 = threading.Thread(target=InternalSocketPart_ServerSide)
     t2 = threading.Thread(target=OpenWebpage)

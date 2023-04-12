@@ -195,11 +195,11 @@ def update_userlist():
     timestamp = data['timestamp']
 
     # Update the JSON file with the new data
-    with open('localuserlist.json', 'r') as file_object:
+    with open(userlistjson, 'r') as file_object:
         db = json.load(file_object)
 
     user_found = False
-    for user in db:
+    for key, user in db.items():
         if user['name'] == user_name:
             user['points'] += int(consume_point)
             user['timestamp'] = timestamp
@@ -207,17 +207,15 @@ def update_userlist():
             break
 
     if not user_found:
-        db.append({
-            'name': user_name,
-            'points': int(consume_point),
-            'timestamp': timestamp
-        })
+        db[len(db)] = {'name': user_name, 'points': int(
+            consume_point), 'timestamp': timestamp}
 
-    with open('localuserlist.json', 'w') as file_object:
+    with open(userlistjson, 'w') as file_object:
         json.dump(db, file_object)
 
     response = {'status': 'success', 'message': 'User list updated'}
     return jsonify(response), 200
+
 
 # Get the user name from the frontend. ,method will be 'POST'
 

@@ -1,6 +1,7 @@
 import json
 import os
 from flask import Flask, jsonify, request, send_from_directory
+from datetime import datetime
 import UserConnectedSocket
 # import OpenWebPage
 
@@ -168,11 +169,11 @@ app = Flask(__name__)
 # [ISSUE] HOW TO CONNECT THIS BACKEND API TO FRONTEND?
 
 
-userlistjson = 'Backend/localuserlist.json'
+userlistjson = '/Users/klsg/Desktop/distributed/Backend/localuserlist.json'
 
 
 app = Flask(
-    __name__, static_folder='Backend/static/distributed-front')
+    __name__, static_folder='/Users/klsg/Desktop/distributed/Backend/static/distributed-front')
 
 # Serve Angular app as static files
 
@@ -191,16 +192,28 @@ def update_userlist():
     data = request.json
     user_name = data['userName']
     consume_point = data['consumePoint']
-
-    # Call SendMessage() function here
-    SendMessage(socket, user_name, consume_point)
+    timestamp = data['timestamp']
 
     # Update the JSON file with the new data
-    with open(userlistjson, 'r') as file_object:
+    with open('localuserlist.json', 'r') as file_object:
         db = json.load(file_object)
-        db[len(db)] = {'name': user_name, 'points': int(consume_point)}
 
-    with open(userlistjson, 'w') as file_object:
+    user_found = False
+    for user in db:
+        if user['name'] == user_name:
+            user['points'] += int(consume_point)
+            user['timestamp'] = timestamp
+            user_found = True
+            break
+
+    if not user_found:
+        db.append({
+            'name': user_name,
+            'points': int(consume_point),
+            'timestamp': timestamp
+        })
+
+    with open('localuserlist.json', 'w') as file_object:
         json.dump(db, file_object)
 
     response = {'status': 'success', 'message': 'User list updated'}

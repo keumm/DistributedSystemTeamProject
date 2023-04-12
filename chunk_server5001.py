@@ -1,5 +1,7 @@
 import json
-from flask import Flask
+import os
+from flask import Flask, jsonify, request, send_from_directory
+from datetime import datetime
 import UserConnectedSocket
 # import OpenWebPage
 
@@ -86,7 +88,9 @@ def SendBufferData(socket):
 # def sendMessage(name, number = default false.)
 # -> when name is only come, just do name .....
 
-def SendMessage(socket):
+def SendMessage(socket, user_name, consume_point):
+    # The rest of the SendMessage() function code
+
     t_end = time.time() + 3
     # msg = 'MARK'
     # msg = '{"name": "Jeremiah", "points": 3}'
@@ -94,7 +98,7 @@ def SendMessage(socket):
 
     current_time = time.time()
     # Sending a message with the cuerrent time as well
-    msg = '{"name": "Oscar", "points": 88, "timestamp": %f }' % current_time
+    msg = f'{{"name": "{user_name}", "points": {consume_point}, "timestamp": {current_time:.6f} }}'
     # time.sleep(2)
     socket.sendall(msg.encode())
     result = socket.recv(1024).decode()
@@ -164,23 +168,53 @@ app = Flask(__name__)
 # [ISSUE] HOW TO CONNECT THIS BACKEND API TO FRONTEND?
 
 
-userlistjson = 'localuserlist.json'
+userlistjson = '/Users/klsg/Desktop/distributed/Backend/localuserlist.json'
 
 
-@app.route('/')
-# ‘/’ URL is bound with hello_world() function.
-def hello_world():
-    return 'Welcome, This is server 5001 '
+app = Flask(
+    __name__, static_folder='/Users/klsg/Desktop/distributed/Backend/static/distributed-front')
 
-# Showing up the whole list of the database.
+# Serve Angular app as static files
 
 
-@app.route('/showuserlist', methods=['GET'])
-def ShowingAllList():
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_angular_app(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
+
+@app.route('/api/update_userlist', methods=['POST'])
+def update_userlist():
+    data = request.json
+    user_name = data['userName']
+    consume_point = data['consumePoint']
+    timestamp = data['timestamp']
+
+    # Update the JSON file with the new data
     with open(userlistjson, 'r') as file_object:
         db = json.load(file_object)
-    return db
+
+    user_found = False
+    for key, user in db.items():
+        if user['name'] == user_name:
+            user['points'] += int(consume_point)
+            user['timestamp'] = timestamp
+            user_found = True
+            break
+
+    if not user_found:
+        db[len(db)] = {'name': user_name, 'points': int(
+            consume_point), 'timestamp': timestamp}
+
+    with open(userlistjson, 'w') as file_object:
+        json.dump(db, file_object)
+
+    response = {'status': 'success', 'message': 'User list updated'}
+    return jsonify(response), 200
+
 
 # Get the user name from the frontend. ,method will be 'POST'
 

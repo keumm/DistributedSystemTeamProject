@@ -8,6 +8,7 @@ import socket
 import select
 import time
 import threading
+import sys
 # import otherfunctions.server5000 as server5000
 # import otherfunctions.PortForwarding as PortForwarding
 
@@ -404,39 +405,38 @@ def WhenServerIsOn():
 def ConnectingAndGetDataFromMaster():
     HOST = "127.0.0.1"  # The server's hostname or IP address
     PORT = 54321  # The port used by the server
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
-        while True:
 
+        while True:
+            # Keep Asking to the Master server every 20 seconds
             s.send(b'Hi could you send me data?')
-            # print('Connected!')
-            # time.sleep(5)
-            # print('Current time is :', time.time())
-            # time.sleep(5)
-            # print("Socket Connection is closed")
+
             data = s.recv(1024)
-            if data.startswith(b'{'):
-                # data = s.recv(1024)
-                print('json data')
-                print(data)
-                # data = data.decode('utf-8')
-                # with open(globaluserlist, 'w') as f:
-                #     json.dump(data, f)
-                # data = data.encode('utf-8')
-                # sock.sendall(data)
-                # If the data is start with nothing. (which means heartbeat data)
-            elif data.startswith(b''):
-                # Send the data to the client
-                # update_hearbeat(data.decode())
-                # sock.sendall(data)
-                # data = s.recv(1024)
-                print('text data')
-                print(data)
+            try:
+                if data.startswith(b'{'):
+                    # data = s.recv(1024)
+                    print('json data')
+                    print(data)
+
+                elif data.startswith(b''):
+
+                    print('text data')
+                    print(data)
+
+            except select.error:
+                s.shutdown(2)
+                s.close()
+                print('connection error')
+                break
+                # ChangeTheMode()   # Switch Shadow to master
+                # RunChunkServerScript()
 
     # This Functions are should run when connection is closed accidently
 
-    ChangeTheMode()   # Switch Shadow to master
-    RunChunkServerScript()
+    # ChangeTheMode()   # Switch Shadow to master
+    # RunChunkServerScript()
 
 
 def ChangeTheMode():

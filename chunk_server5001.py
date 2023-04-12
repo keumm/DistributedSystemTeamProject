@@ -28,13 +28,12 @@ def sending_heartbeat(socket):
     print('hi')
     while (1):
 
-        # This number is the server port number.
-        # It is going to be useful to open up the new port server in the Master server.
-
-        # what is the difference between send and sendall?
-        # When I send a heart beat by using send, It has a collision with sending message.
-        socket.sendall(b"5001")
-        time.sleep(10)
+        try:
+            socket.sendall(b"5001")
+            time.sleep(10)
+        except IOError:  # IOError,
+            print('Disconnected')
+            return None
     # data = socket.recv(1024)
 
     # print(f"Heartbeat: {data!r}")

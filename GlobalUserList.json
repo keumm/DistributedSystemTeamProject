@@ -1,17 +1,1 @@
-{
-  "0": { "name": "per", "points": 80, "timestamp": 0 },
-  "1": { "name": "chao", "points": 21, "timestamp": 0 },
-  "2": { "name": "mark", "points": 7, "timestamp": 0 },
-  "3": { "name": "JOHN", "points": 5, "timestamp": 0 },
-  "4": { "name": "THOMAS", "points": 0, "timestamp": 0 },
-  "5": { "name": "LUKE", "points": 0, "timestamp": 0 },
-  "6": { "name": "JOHN", "points": 5, "timestamp": 0 },
-  "7": { "name": "lo", "points": 20, "timestamp": 0 },
-  "8": { "name": "lu", "points": 13, "timestamp": 0 },
-  "9": { "name": "le", "points": 13, "timestamp": 0 },
-  "10": { "name": "feng", "points": 20, "timestamp": 0 },
-  "11": { "name": "Schindler", "points": 34, "timestamp": 0 },
-  "12": { "name": "Oscar", "points": 1244, "timestamp": 1681215852.901315 },
-  "13": { "name": "Jeremiah", "points": 81, "timestamp": 0 },
-  "14": { "name": "chilly", "points": 117, "timestamp": 1681215867.42168 }
-}
+"{\"name\": \"per\", \"points\": 15}"

@@ -1,14 +1,15 @@
+import threading
+import time
+import socket
 import json
 import os
 from flask import Flask, jsonify, request, send_from_directory
 from datetime import datetime
 import UserConnectedSocket
 # import OpenWebPage
+global s
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-
-import socket
-import time
-import threading
 
 # Sending regular heartbeat
 # format looks like this:
@@ -115,15 +116,28 @@ def SendMessage(socket, user_name, consume_point):
         print('Data is left in the Buffer', Buffer)
 
 
-def MultiThreadingClient(socket):
+class MultiThreadingClient:
+    def __init__(self, socket):
+        self.socket = socket
 
-    t1 = threading.Thread(target=SendBufferData, args=(socket,))
-    t2 = threading.Thread(target=SendMessage, args=(socket,))
+    def send_user_list_update(self, user_name, consume_point, timestamp):
+        user_data = json.dumps(
+            {"name": user_name, "points": consume_point, 'timestamp': timestamp})
+        try:
+            self.socket.sendall(user_data.encode())
+        except BrokenPipeError:
+            print("Broken pipe error encountered. Attempting to reconnect...")
+            self.reconnect()
+            self.socket.sendall(user_data.encode())
 
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+    def reconnect(self):
+        global s
+        s.close()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        HOST = "127.0.0.1"  # The server's hostname or IP address
+        PORT = 12345  # The port used by the server
+        s.connect((HOST, PORT))
+
 
 # Sending an updated userlist to master.
 
@@ -131,32 +145,28 @@ def MultiThreadingClient(socket):
 # Message comes from FrontEnd and recording on the localuserlist.json
 # Then send a message to the master server.
 
-def localuserlistupdate(socket):
-    # How to send a data? Which format do we need?
-    # [ISSUE] MSG FORMAT : How we are going to send a format of this meesage?
-
-    MultiThreadingClient(socket)
-    # print('Succeccfuly sent')
+def localuserlistupdate(s, user_name, consume_point, timestamp):
+    # Connection to socket
+    client = MultiThreadingClient(s)
+    client.send_user_list_update(user_name, consume_point, timestamp)
 
 
 def connections():
+    global s
     HOST = "127.0.0.1"  # The server's hostname or IP address
     PORT = 12345  # The port used by the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        # Connection to socket
-        t1 = threading.Thread(target=sending_heartbeat, args=(s,))
-        t2 = threading.Thread(target=localuserlistupdate, args=(s,))
-        t1.start()
-        t2.start()
 
-        # wait until thread 1 is completely executed
-        t1.join()
-        # wait until thread 2 is completely executed
-        t2.join()
+    s.connect((HOST, PORT))
 
-        # both threads completely executed
-        print("Done! All of the Thread processes are completed.")
+    # Connection to socket
+    t1 = threading.Thread(target=sending_heartbeat, args=(s,))
+    t1.start()
+
+    # wait until thread 1 is completely executed
+    t1.join()
+
+    # both threads completely executed
+    print("Done! All of the Thread processes are completed.")
 
 
 ########################################################################################################################
@@ -193,6 +203,7 @@ def update_userlist():
     consume_point = data['consumePoint']
     timestamp = data['timestamp']
 
+    localuserlistupdate(s, user_name, consume_point, timestamp)
     # Update the JSON file with the new data
     with open(userlistjson, 'r') as file_object:
         db = json.load(file_object)

@@ -8,8 +8,7 @@ import socket
 import select
 import time
 import threading
-# import otherfunctions.server5000 as server5000
-# import otherfunctions.PortForwarding as PortForwarding
+import sys
 
 # Need to put When server is ON or not
 PORT = 5000
@@ -17,13 +16,17 @@ ListeningChunkServersPort = 12345
 ListeningShadowMasterSserverPort = 54321
 
 
+heartbeatfile = '/Users/klsg/Desktop/distributed/Backend/heartbeat.txt'
+
 # Updating heartbeat on txt file
+
+
 def update_hearbeat(data):
 
     current_time = time.time()
     # print('Current time: {0}'.format(current_time))
 
-    f = open("heartbeat.txt", "r")
+    f = open(heartbeatfile, "r")
     aList = f.read()
     aList = aList.replace('', '').split(" ")
     a_dict = {}
@@ -49,25 +52,8 @@ def update_hearbeat(data):
 
     print(' '.join(write_list))  # make a string
     print(write_list)
-    with open("heartbeat.txt", "w") as output:
+    with open(heartbeatfile, "w") as output:
         output.write(' '.join(write_list))
-
-
-# Reference : Tcp Port Forwarding (Reverse Proxy)
-# Author : WangYihang <wangyihanger@gmail.com>
-# Edited : Sub
-'''
- +-----------------------------+         +---------------------------------------------+         +--------------------------------+
- |     My Laptop (Alice)       |         |            Intermediary Server (Bob)        |         |    Internal Server (Carol)     |
- +-----------------------------+         +----------------------+----------------------+         +--------------------------------+
- | $ ssh -p 1022 carol@1.2.3.4 |<------->|    IF 1: 1.2.3.4     |  IF 2: 192.168.1.1   |<------->|       IF 1: 192.168.1.2        |
- | carol@1.2.3.4's password:   |         +----------------------+----------------------+         +--------------------------------+
- | carol@hostname:~$ whoami    |         | $ python pf.py --listen-host 1.2.3.4 \      |         | 192.168.1.2:22(OpenSSH Server) |
- | carol                       |         |                --listen-port 1022 \         |         +--------------------------------+
- +-----------------------------+         |                --connect-host 192.168.1.2 \ |
-                                         |                --connect-port 22            |
-                                         +---------------------------------------------+
-'''
 
 
 # With the loggin we could do someething useful. I guess.
@@ -168,7 +154,7 @@ def server():
 
 
 def ExtractHearbeatIntoList():
-    f = open("heartbeat.txt", "r")
+    f = open(heartbeatfile, "r")
     aList = f.read()
     aList = aList.replace('', '').split(" ")
     a_dict = {}
@@ -206,113 +192,91 @@ def Isserverokay():
 
     # & os.system('&') & ExecutingPSandCS.main(port)
 
+
+def update_global_user_list(user_name, consume_point, timestamp):
+    with open(globaluserlist, 'r') as file_object:
+        db = json.load(file_object)
+
+    user_found = False
+    for key, user in db.items():
+        if user['name'] == user_name:
+            user['points'] += int(consume_point)
+            user['timestamp'] = timestamp
+            user_found = True
+            break
+
+    if not user_found:
+        db[len(db)] = {'name': user_name, 'points': int(
+            consume_point), 'timestamp': timestamp}
+
+    with open(globaluserlist, 'w') as file_object:
+        json.dump(db, file_object)
+
+
 #######################################################################################################################################
 
 
-globaluserlist = 'GlobalUserList.json'
+globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
 
 
 def InternalSocketPart_ServerSide():
-
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    # Set the socket to non-blocking mode
-    server_socket.setblocking(False)
-
     server_address = ('localhost', ListeningChunkServersPort)
     server_socket.bind(server_address)
-    server_socket.listen(5)   # Maximum number of connections
+    server_socket.listen(5)  # Maximum number of connections
 
-    # List of sockets to be monitored by select
     sockets_to_monitor = [server_socket]
 
     print("Server is ready to accept connections...")
 
-    # [ISSUE] When client disconnects in not a regular way, server got an error and turn off automatically.
     while True:
-        # Use select to get the list of sockets ready for reading
-        ready_to_read, _, _ = select.select(sockets_to_monitor, [], [])
+        try:
+            ready_to_read, _, _ = select.select(sockets_to_monitor, [], [])
 
-        for sock in ready_to_read:
-            if sock == server_socket:
-                # A new client connection is ready to be accepted
-                client_socket, client_address = server_socket.accept()
-                print(f"Connected from ChunkServer {client_address}")
-                sockets_to_monitor.append(client_socket)
-            else:
-                # An existing client sent data or closed the connection
-                # Update by append?
-                # How to update the global user list?
-                data = sock.recv(1024)
-                if data:
-                    print(
-                        f"Received data from client {client_address}: {data}")
-                    # This format will be json format
-
-                    # [ISSUE - Solved] How to save the data into globaluserlist.json ?
-                    # JSON data format starts with {, if got {this sending to json
-                    if data.startswith(b'{'):
-                        data = data.decode('utf-8')
-                        # time.sleep(5)
-                        try:
-
-                            with open(globaluserlist, 'r') as file_object:
-                                databasejson = json.load(file_object)
-
-                                for i, databasejson[i] in databasejson.items():
-                                    if (databasejson[i]["name"] == json.loads(data)["name"]):
-                                        if (databasejson[i]["timestamp"] == json.loads(data)["timestamp"]):
-                                            print(
-                                                'Drop the packet, because it is already logged!')
-                                            sock.send(
-                                                b'Server: This data alreadt logged I do not need this thank you!')
-                                            break
-                                        else:
-                                            print('Time to logging')
-
-                                            with open(globaluserlist, 'w') as file_object:
-                                                Resultpoint = int(
-                                                    databasejson[i]["points"]) + json.loads(data)["points"]
-                                                CurrentTimeStamp = json.loads(data)[
-                                                    "timestamp"]
-                                                databasejson[i] = {"name": json.loads(
-                                                    data)["name"], "points": Resultpoint, "timestamp": CurrentTimeStamp}
-                                                json.dump(
-                                                    databasejson, file_object)
-                                                sock.send(
-                                                    b'Server: Yes, I logged!')
-                                                print('Point modified!')
-                                                break
-                                    else:
-                                        # print('NO')
-                                        if (int(i) == len(databasejson)-1):
-                                            # print(i)
-                                            with open(globaluserlist, 'w') as file_object:
-
-                                                databasejson[len(databasejson)] = json.loads(
-                                                    data)
-                                                json.dump(
-                                                    databasejson, file_object)
-                                                sock.send(
-                                                    b'Server: Yes, I logged!')
-                                                print('New User Created')
-                                                break
-
-                        except:
-                            print('error')
-
-                    # If the data starts with nothing. (which means heartbeat data)
-                    elif data.startswith(b''):
-                        # Send the data to the client
-                        update_hearbeat(data.decode())
-                        # Don't need to send back? I think?
-                        # sock.sendall(data)
+            for sock in ready_to_read:
+                if sock == server_socket:
+                    client_socket, client_address = server_socket.accept()
+                    print(f"Connected from ChunkServer {client_address}")
+                    sockets_to_monitor.append(client_socket)
                 else:
-                    print(
-                        f"Connection closed by ChunkServer {client_address}")
-                    sock.close()
-                    sockets_to_monitor.remove(sock)
+                    data = sock.recv(1024)
+                    if data:
+                        print(
+                            f"Received data from client {client_address}: {data}")
+
+                        # Process the received data
+                        try:
+                            message = data.decode()
+                            if message.isdigit():
+                                # Handle integer messages (e.g., port numbers) here
+                                pass
+                            else:
+
+                                message = data.decode()
+                                message = json.loads(message)
+                                user_name = message.get('name')
+                                consume_point = message.get('points')
+                                timestamp = message.get('timestamp')
+
+                                if user_name and consume_point and timestamp:
+                                    # Process the user update message
+                                    update_global_user_list(
+                                        user_name, consume_point, timestamp)
+                                    # You can add the code for updating the global user list here
+                                    pass
+                        except json.JSONDecodeError:
+                            # It's not a JSON message, assuming it's a heartbeat message
+                            pass
+                    else:
+                        print(
+                            f"Connection closed by ChunkServer {client_address}")
+                        sock.close()
+                        sockets_to_monitor.remove(sock)
+        except IOError:
+            print('Disconnected')
+            break
 
 
 #################################################################################################################################
@@ -335,11 +299,11 @@ def SendDataToShadowMaster():
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # Set the socket to non-blocking mode
-    server_socket.setblocking(False)
+    # server_socket.setblocking(False)
 
     server_address = ('localhost', ListeningShadowMasterSserverPort)  # 54321
     server_socket.bind(server_address)
-    server_socket.listen(1)   # Maximum number of connections
+    server_socket.listen(3)   # Maximum number of connections
 
     # List of sockets to be monitored by select
     sockets_to_monitor = [server_socket]
@@ -347,7 +311,8 @@ def SendDataToShadowMaster():
     print("Server is ready to accept connections...")
 
     # [ISSUE] When client disconnects in not a regular way, server got an error and turn off automatically.
-    while True:
+    # while True:
+    for i in range(0, 10):
         # Use select to get the list of sockets ready for reading
         ready_to_read, _, _ = select.select(sockets_to_monitor, [], [])
 
@@ -364,35 +329,31 @@ def SendDataToShadowMaster():
 
                 data = sock.recv(1024)
                 # Once you got initialization data from the shadow master, start sending the globaruser list and hearbeat regularlly
+                try:
+                    if data:
+                        # print(data)
+                        sock.send(Globaluserlistdata.encode())
+                        print('Successfully sent json')
+                        # # data = sock.recv(1024)
+                        # # print(data)
+                        with open(heartbeatfile) as textfileopen:
+                            contents = textfileopen.read()
+                            # print(contents)
 
-                if data:
-                    # print(data)
-                    sock.send(Globaluserlistdata.encode())
-                    print('Successfully sent json')
-                    # # data = sock.recv(1024)
-                    # # print(data)
-                    with open('heartbeat.txt') as textfileopen:
-                        contents = textfileopen.read()
-                        # print(contents)
+                        sock.send(contents.encode())
+                        print('Successfully sent text')
+                        # data = sock.recv(1024)
+                        # print(data)
+                        time.sleep(10)
 
-                    sock.send(contents.encode())
-                    print('Successfully sent text')
-                    # data = sock.recv(1024)
-                    # print(data)
-                    time.sleep(20)
-
-                else:
-                    print(
-                        f"Connection closed by Shadowserver {client_address}")
-                    sock.close()
-                    sockets_to_monitor.remove(sock)
-
-
-# Shadow master will get the data and saves it there database.
-def ShadowMasterServer_ClientSide():
-    print('Hi, I am a shadow Master')
-
-# [Issue] What is the join() for?
+                    else:
+                        print(
+                            f"Connection closed by Shadowserver {client_address}")
+                        sock.close()
+                        sockets_to_monitor.remove(sock)
+                except IOError:  # IOError,
+                    print('Disconnected')
+                    return None
 
 
 def WhenServerIsOn():
@@ -413,8 +374,58 @@ def WhenServerIsOn():
     t4.join()
 
 
+# This is Client Side Mode
+def ConnectingAndGetDataFromMaster():
+    HOST = "127.0.0.1"  # The server's hostname or IP address
+    PORT = 54321  # The port used by the server
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+
+        while (1):
+
+            try:
+                # Keep Asking to the Master server every 20 seconds
+                s.send(b'Hi could you send me data?')
+
+                data = s.recv(1024)
+                if data.startswith(b'{'):
+                    # data = s.recv(1024)
+                    print('json data')
+                    print(data)
+
+                elif data.startswith(b''):
+
+                    print('text data')
+                    print(data)
+
+            except IOError:  # IOError,
+                print('Disconnected')
+                print('ChangeThe mode!')
+                ChangeTheMode()   # Switch Shadow to master
+
+                return None
+
+    # This Functions are should run when connection is closed accidently
+
+    # ChangeTheMode()   # Switch Shadow to master
+    # RunChunkServerScript()
+
+
+def ChangeTheMode():
+
+    os.system('python master_shadow[test].py --verbose & ')
+    os.system("gnome-terminal 'python chunk_server5001.py'")
+
+    print('RUNNING CHUNKSERVER!!')
+
+
+###############################################################################
 def WhenServerIsOff():
-    print('Server is Off')
+
+    t1 = threading.Thread(target=ConnectingAndGetDataFromMaster)
+    t1.start()
+################################################################################
 
 
 if __name__ == "__main__":

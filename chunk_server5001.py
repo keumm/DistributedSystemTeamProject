@@ -179,6 +179,7 @@ app = Flask(__name__)
 
 
 userlistjson = '/Users/klsg/Desktop/distributed/Backend/localuserlist.json'
+userhistoryjson = '/Users/klsg/Desktop/distributed/Backend/LocaldataHistory.json'
 
 
 app = Flask(
@@ -223,9 +224,60 @@ def update_userlist():
     with open(userlistjson, 'w') as file_object:
         json.dump(db, file_object)
 
+        # Update the JSON file with the new data
+
+    with open(userhistoryjson, 'r') as file_object1:
+        db = json.load(file_object1)
+        db[len(db)] = {
+            'name': user_name,
+            'points': int(consume_point),
+            'timestamp': timestamp
+        }
+
+    with open(userhistoryjson, 'w') as file_object1:
+        json.dump(db, file_object1)
+
+        # Update the history JSON file with the new data
+
     response = {'status': 'success', 'message': 'User list updated'}
     return jsonify(response), 200
 
+
+globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
+
+
+@app.route('/users/<username>', methods=['GET'])
+def get_user_consume_point(username):
+    with open(globaluserlist, 'r') as file_object:
+        db = json.load(file_object)
+
+    user_found = False
+    for key, user in db.items():
+        if user['name'] == username:
+            user_found = True
+            return jsonify({'name': user['name'], 'consume_point': user['points']})
+
+    if not user_found:
+        return jsonify({'error': 'User not found'}), 404
+
+
+@app.route('/api/transaction_history', methods=['GET'])
+def get_transaction_history():
+    username = request.args.get('username')
+
+    if not username:
+        return jsonify({'error': 'Username is required'}), 400
+
+    try:
+        with open(userhistoryjson, 'r') as file_object:
+            all_transactions = json.load(file_object)
+    except FileNotFoundError:
+        return jsonify({'error': 'Transaction history not found'}), 404
+
+    user_transactions = [transaction for transaction in all_transactions.values(
+    ) if transaction['name'] == username]
+
+    return jsonify(user_transactions), 200
 
 # Get the user name from the frontend. ,method will be 'POST'
 

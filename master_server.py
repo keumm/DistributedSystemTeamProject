@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 import os
 import random
 import logging
@@ -213,10 +213,23 @@ def update_global_user_list(user_name, consume_point, timestamp):
         json.dump(db, file_object)
 
 
+def update_global_user_historylist(user_name, consume_point, timestamp):
+    with open(globaluserhistorylist, 'r') as file_object1:
+        db = json.load(file_object1)
+        db[len(db)] = {
+            'name': user_name,
+            'points': int(consume_point),
+            'timestamp': timestamp
+        }
+
+    with open(globaluserhistorylist, 'w') as file_object1:
+        json.dump(db, file_object1)
+
 #######################################################################################################################################
 
 
 globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
+globaluserhistorylist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserHistory.json'
 
 
 def InternalSocketPart_ServerSide():
@@ -263,6 +276,8 @@ def InternalSocketPart_ServerSide():
                                 if user_name and consume_point and timestamp:
                                     # Process the user update message
                                     update_global_user_list(
+                                        user_name, consume_point, timestamp)
+                                    update_global_user_historylist(
                                         user_name, consume_point, timestamp)
                                     # You can add the code for updating the global user list here
                                     pass

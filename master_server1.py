@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 import os
 import random
 import logging
@@ -323,7 +323,8 @@ def SendDataToShadowMaster():
                 print(f"Connected by Shadowserver {client_address}")
                 sockets_to_monitor.append(client_socket)
             else:
-                jsonfileopen = open('GlobalUserList.json')
+                jsonfileopen = open(
+                    '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json')
                 result = json.load(jsonfileopen)
                 Globaluserlistdata = str(result)         # Change into string.
 

@@ -246,8 +246,8 @@ def update_global_user_historylist(user_name, consume_point, timestamp):
 #######################################################################################################################################
 
 
-globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
-globaluserhistorylist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserHistory.json'
+globaluserlist = '/Users/klsg/Desktop/distributed/Backend/Globaluserlistshadow.json'
+globaluserhistorylist = '/Users/klsg/Desktop/distributed/Backend/Globaluserlisthistoryshadow.json'
 
 
 def InternalSocketPart_ServerSide():
@@ -411,7 +411,8 @@ def SendDataToShadowMaster():
                 print(f"Connected by Shadowserver {client_address}")
                 sockets_to_monitor.append(client_socket)
             else:
-                jsonfileopen = open('GlobalUserList.json')
+                jsonfileopen = open(
+                    '/Users/klsg/Desktop/distributed/Backend/Globaluserlistshadow.json')
                 result = json.load(jsonfileopen)
                 Globaluserlistdata = str(result)         # Change into string.
 
@@ -603,7 +604,7 @@ def ConnectingAndGetDataFromMaster():
 def ChangeTheMode():
 
     # Running shadow for opposite -> running as a main
-    os.system('python master_shadow[test].py --verbose & ')
+    os.system('python master_shadow1.py --verbose & ')
     # time.sleep(2)
 
     print('RUNCHUNKSERVER?========================================')

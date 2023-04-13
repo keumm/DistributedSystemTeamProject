@@ -23,7 +23,7 @@ ListeningShadowMasterSserverPort = 54321
 MAXIMUM = 5
 M_MAXIMUM = 1
 
-heartbeattextfile = '/Users/klsg/Desktop/distributed/Backend/heartbeatshadow.txt'
+heartbeattextfile = 'DistributedSystemTeamProject/heartbeatshadow.txt'
 
 
 def update_hearbeat(data):
@@ -246,8 +246,8 @@ def update_global_user_historylist(user_name, consume_point, timestamp):
 #######################################################################################################################################
 
 
-globaluserlist = '/Users/klsg/Desktop/distributed/Backend/Globaluserlistshadow.json'
-globaluserhistorylist = '/Users/klsg/Desktop/distributed/Backend/Globaluserlisthistoryshadow.json'
+globaluserlist = 'DistributedSystemTeamProject/Globaluserlistshadow.json'
+globaluserhistorylist = ''
 
 
 def InternalSocketPart_ServerSide():
@@ -412,7 +412,7 @@ def SendDataToShadowMaster():
                 sockets_to_monitor.append(client_socket)
             else:
                 jsonfileopen = open(
-                    '/Users/klsg/Desktop/distributed/Backend/Globaluserlistshadow.json')
+                    'DistributedSystemTeamProject/Globaluserlistshadow.json')
                 result = json.load(jsonfileopen)
                 Globaluserlistdata = str(result)         # Change into string.
 

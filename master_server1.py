@@ -21,7 +21,7 @@ MAXIMUM = 7
 M_MAXIMUM = 1
 ListeningChunkServersPort = 12345        # Open the socket for 5 listening
 ListeningShadowMasterSserverPort = 54321  # Oepn the socket for 1 listening
-heartbeatfile = '/Users/klsg/Desktop/distributed/Backend/heartbeat.txt'
+heartbeatfile = 'DistributedSystemTeamProject/heartbeat.txt'
 # Updating heartbeat on txt file
 
 
@@ -213,8 +213,8 @@ def update_global_user_historylist(user_name, consume_point, timestamp):
 #######################################################################################################################################
 
 
-globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
-globaluserhistorylist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserHistory.json'
+globaluserlist = 'DistributedSystemTeamProject/localuserlist.json'
+globaluserhistorylist = 'DistributedSystemTeamProject/LocaldataHistory.json'
 
 
 def InternalSocketPart_ServerSide():
@@ -324,7 +324,7 @@ def SendDataToShadowMaster():
                 sockets_to_monitor.append(client_socket)
             else:
                 jsonfileopen = open(
-                    '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json')
+                    'DistributedSystemTeamProject/GlobalUserList.json')
                 result = json.load(jsonfileopen)
                 Globaluserlistdata = str(result)         # Change into string.
 

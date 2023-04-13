@@ -13,6 +13,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Sending regular heartbeat
 # format looks like this:
+# 5001(port number) : 12940821094.12414 (current timestamp)
 # With those values, Master server will know which chunk servers break down.
 
 
@@ -177,12 +178,12 @@ app = Flask(__name__)
 # [ISSUE] HOW TO CONNECT THIS BACKEND API TO FRONTEND?
 
 
-userlistjson = '/Users/klsg/Desktop/distributed/Backend/localuserlist.json'
-userhistoryjson = '/Users/klsg/Desktop/distributed/Backend/LocaldataHistory.json'
+userlistjson = 'DistributedSystemTeamProject/localuserlist.json'
+userhistoryjson = 'DistributedSystemTeamProject/LocaldataHistory.json'
 
 
 app = Flask(
-    __name__, static_folder='/Users/klsg/Desktop/distributed/Backend/static/distributed-front')
+    __name__, static_folder='DistributedSystemTeamProject/static/distributed-front')
 
 # Serve Angular app as static files
 
@@ -242,7 +243,7 @@ def update_userlist():
     return jsonify(response), 200
 
 
-globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
+globaluserlist = 'DistributedSystemTeamProject/GlobalUserList.json'
 
 
 @app.route('/users/<username>', methods=['GET'])
@@ -277,6 +278,57 @@ def get_transaction_history():
     ) if transaction['name'] == username]
 
     return jsonify(user_transactions), 200
+
+# Get the user name from the frontend. ,method will be 'POST'
+
+# This will be button and searchbar.
+
+
+# @app.route('/createuser', methods=['GET'])
+# def CreateUser():
+
+#     with open(userlistjson, 'r') as file_object:
+#         db = json.load(file_object)
+#         print(db)
+#         createuser = input('Enter New users name!:')
+#         db[len(db)] = {'name': createuser, 'points': 0}
+
+#     with open(userlistjson, 'w') as file_object:
+#         json.dump(db, file_object)  # converting dictionary to json file.
+#     return 'Created successfully!'  # + str(db)
+
+
+# # It is going to be POST
+# @ app.route('/increasepoints', methods=['GET'])  # ['POST']
+# def IncreasingPoints():
+
+#     result = ' '
+#     with open(userlistjson, 'r') as file_object:
+#         db = json.load(file_object)
+
+#         # createuser = input('Enter your name!:')
+#         # opendb[len(opendb)] = {'name': createuser, 'points': 0}
+#         search_name = input('Enter your name!:')
+#         for i, db[i] in db.items():
+#             if (db[i]['name'] == search_name):
+#                 # Put the result into the result variable.
+#                 # result = str(db[i]['name']) + ' ' + str(db[i]['points'])
+#                 print(str(db[i]['name']) + ' ' + str(db[i]['points']))
+#                 print('How many points increase?')
+#                 input_points = int(input('Enter points:'))
+#                 # If deacrese do
+#                 Resultpoints = int(db[i]['points']) + input_points
+#                 # print(Resultpoints)
+#                 result = str(db[i]['name']) + ' ' + str(Resultpoints)
+#                 db[i] = {'name': search_name, 'points': Resultpoints}
+#                 break
+#             else:
+#                 return 'Not found user'
+
+#     with open(userlistjson, 'w') as file_object:
+#         json.dump(db, file_object)  # converting dictionary to json file.
+
+#     return result  # How to bring up the json file into WEB?
 
 
 def openWebPage():

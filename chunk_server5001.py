@@ -178,12 +178,12 @@ app = Flask(__name__)
 # [ISSUE] HOW TO CONNECT THIS BACKEND API TO FRONTEND?
 
 
-userlistjson = '/Users/klsg/Desktop/distributed/Backend/localuserlist.json'
-userhistoryjson = '/Users/klsg/Desktop/distributed/Backend/LocaldataHistory.json'
+userlistjson = 'DistributedSystemTeamProject/localuserlist.json'
+userhistoryjson = 'DistributedSystemTeamProject/LocaldataHistory.json'
 
 
 app = Flask(
-    __name__, static_folder='/Users/klsg/Desktop/distributed/Backend/static/distributed-front')
+    __name__, static_folder='DistributedSystemTeamProject/static/distributed-front')
 
 # Serve Angular app as static files
 
@@ -243,7 +243,7 @@ def update_userlist():
     return jsonify(response), 200
 
 
-globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
+globaluserlist = 'DistributedSystemTeamProject/GlobalUserList.json'
 
 
 @app.route('/users/<username>', methods=['GET'])

@@ -178,12 +178,12 @@ app = Flask(__name__)
 # [ISSUE] HOW TO CONNECT THIS BACKEND API TO FRONTEND?
 
 
-userlistjson = 'DistributedSystemTeamProject/localuserlist.json'
-userhistoryjson = 'DistributedSystemTeamProject/LocaldataHistory.json'
+userlistjson = './localuserlist.json'
+userhistoryjson = './LocaldataHistory.json'
 
 
 app = Flask(
-    __name__, static_folder='DistributedSystemTeamProject/static/distributed-front')
+    __name__, static_folder='./static/distributed-front')
 
 # Serve Angular app as static files
 

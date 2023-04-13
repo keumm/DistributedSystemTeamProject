@@ -23,7 +23,7 @@ ListeningShadowMasterSserverPort = 54321
 MAXIMUM = 5
 M_MAXIMUM = 1
 
-heartbeattextfile = 'DistributedSystemTeamProject/heartbeatshadow.txt'
+heartbeattextfile = './heartbeatshadow.txt'
 
 
 def update_hearbeat(data):
@@ -246,7 +246,7 @@ def update_global_user_historylist(user_name, consume_point, timestamp):
 #######################################################################################################################################
 
 
-globaluserlist = 'DistributedSystemTeamProject/Globaluserlistshadow.json'
+globaluserlist = './Globaluserlistshadow.json'
 globaluserhistorylist = ''
 
 

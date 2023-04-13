@@ -1,16 +1,18 @@
+import threading
+import time
+import socket
 import json
-from flask import Flask
+import os
+from flask import Flask, jsonify, request, send_from_directory
+from datetime import datetime
 import UserConnectedSocket
 # import OpenWebPage
+global s
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-
-import socket
-import time
-import threading
 
 # Sending regular heartbeat
 # format looks like this:
-# 5002(port number) : 12940821094.12414 (current timestamp)
 # With those values, Master server will know which chunk servers break down.
 
 
@@ -86,7 +88,9 @@ def SendBufferData(socket):
 # def sendMessage(name, number = default false.)
 # -> when name is only come, just do name .....
 
-def SendMessage(socket):
+def SendMessage(socket, user_name, consume_point):
+    # The rest of the SendMessage() function code
+
     t_end = time.time() + 3
     # msg = 'MARK'
     # msg = '{"name": "Jeremiah", "points": 3}'
@@ -94,7 +98,7 @@ def SendMessage(socket):
 
     current_time = time.time()
     # Sending a message with the cuerrent time as well
-    msg = '{"name": "chilly", "points": 13, "timestamp": %f }' % current_time
+    msg = f'{{"name": "{user_name}", "points": {consume_point}, "timestamp": {current_time:.6f} }}'
     # time.sleep(2)
     socket.sendall(msg.encode())
     result = socket.recv(1024).decode()
@@ -111,15 +115,28 @@ def SendMessage(socket):
         print('Data is left in the Buffer', Buffer)
 
 
-def MultiThreadingClient(socket):
+class MultiThreadingClient:
+    def __init__(self, socket):
+        self.socket = socket
 
-    t1 = threading.Thread(target=SendBufferData, args=(socket,))
-    t2 = threading.Thread(target=SendMessage, args=(socket,))
+    def send_user_list_update(self, user_name, consume_point, timestamp):
+        user_data = json.dumps(
+            {"name": user_name, "points": consume_point, 'timestamp': timestamp})
+        try:
+            self.socket.sendall(user_data.encode())
+        except BrokenPipeError:
+            print("Broken pipe error encountered. Attempting to reconnect...")
+            self.reconnect()
+            self.socket.sendall(user_data.encode())
 
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+    def reconnect(self):
+        global s
+        s.close()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        HOST = "127.0.0.1"  # The server's hostname or IP address
+        PORT = 12345  # The port used by the server
+        s.connect((HOST, PORT))
+
 
 # Sending an updated userlist to master.
 
@@ -127,32 +144,28 @@ def MultiThreadingClient(socket):
 # Message comes from FrontEnd and recording on the localuserlist.json
 # Then send a message to the master server.
 
-def localuserlistupdate(socket):
-    # How to send a data? Which format do we need?
-    # [ISSUE] MSG FORMAT : How we are going to send a format of this meesage?
-
-    MultiThreadingClient(socket)
-    # print('Succeccfuly sent')
+def localuserlistupdate(s, user_name, consume_point, timestamp):
+    # Connection to socket
+    client = MultiThreadingClient(s)
+    client.send_user_list_update(user_name, consume_point, timestamp)
 
 
 def connections():
+    global s
     HOST = "127.0.0.1"  # The server's hostname or IP address
     PORT = 12345  # The port used by the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        # Connection to socket
-        t1 = threading.Thread(target=sending_heartbeat, args=(s,))
-        t2 = threading.Thread(target=localuserlistupdate, args=(s,))
-        t1.start()
-        t2.start()
 
-        # wait until thread 1 is completely executed
-        t1.join()
-        # wait until thread 2 is completely executed
-        t2.join()
+    s.connect((HOST, PORT))
 
-        # both threads completely executed
-        print("Done! All of the Thread processes are completed.")
+    # Connection to socket
+    t1 = threading.Thread(target=sending_heartbeat, args=(s,))
+    t1.start()
+
+    # wait until thread 1 is completely executed
+    t1.join()
+
+    # both threads completely executed
+    print("Done! All of the Thread processes are completed.")
 
 
 ########################################################################################################################
@@ -164,74 +177,106 @@ app = Flask(__name__)
 # [ISSUE] HOW TO CONNECT THIS BACKEND API TO FRONTEND?
 
 
-userlistjson = 'localuserlist.json'
+userlistjson = '/Users/klsg/Desktop/distributed/Backend/localuserlist.json'
+userhistoryjson = '/Users/klsg/Desktop/distributed/Backend/LocaldataHistory.json'
 
 
-@app.route('/')
-# ‘/’ URL is bound with hello_world() function.
-def hello_world():
-    return 'Welcome, This is server 5002 '
+app = Flask(
+    __name__, static_folder='/Users/klsg/Desktop/distributed/Backend/static/distributed-front')
 
-# Showing up the whole list of the database.
+# Serve Angular app as static files
 
 
-@app.route('/showuserlist', methods=['GET'])
-def ShowingAllList():
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_angular_app(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
+
+@app.route('/api/update_userlist', methods=['POST'])
+def update_userlist():
+    data = request.json
+    user_name = data['userName']
+    consume_point = data['consumePoint']
+    timestamp = data['timestamp']
+
+    localuserlistupdate(s, user_name, consume_point, timestamp)
+    # Update the JSON file with the new data
     with open(userlistjson, 'r') as file_object:
         db = json.load(file_object)
-    return db
 
-# Get the user name from the frontend. ,method will be 'POST'
+    user_found = False
+    for key, user in db.items():
+        if user['name'] == user_name:
+            user['points'] += int(consume_point)
+            user['timestamp'] = timestamp
+            user_found = True
+            break
 
-# This will be button and searchbar.
+    if not user_found:
+        db[len(db)] = {'name': user_name, 'points': int(
+            consume_point), 'timestamp': timestamp}
+
+    with open(userlistjson, 'w') as file_object:
+        json.dump(db, file_object)
+
+        # Update the JSON file with the new data
+
+    with open(userhistoryjson, 'r') as file_object1:
+        db = json.load(file_object1)
+        db[len(db)] = {
+            'name': user_name,
+            'points': int(consume_point),
+            'timestamp': timestamp
+        }
+
+    with open(userhistoryjson, 'w') as file_object1:
+        json.dump(db, file_object1)
+
+        # Update the history JSON file with the new data
+
+    response = {'status': 'success', 'message': 'User list updated'}
+    return jsonify(response), 200
 
 
-# @app.route('/createuser', methods=['GET'])
-# def CreateUser():
-
-#     with open(userlistjson, 'r') as file_object:
-#         db = json.load(file_object)
-#         print(db)
-#         createuser = input('Enter New users name!:')
-#         db[len(db)] = {'name': createuser, 'points': 0}
-
-#     with open(userlistjson, 'w') as file_object:
-#         json.dump(db, file_object)  # converting dictionary to json file.
-#     return 'Created successfully!'  # + str(db)
+globaluserlist = '/Users/klsg/Desktop/distributed/Backend/GlobalUserList.json'
 
 
-# # It is going to be POST
-# @ app.route('/increasepoints', methods=['GET'])  # ['POST']
-# def IncreasingPoints():
+@app.route('/users/<username>', methods=['GET'])
+def get_user_consume_point(username):
+    with open(globaluserlist, 'r') as file_object:
+        db = json.load(file_object)
 
-#     result = ' '
-#     with open(userlistjson, 'r') as file_object:
-#         db = json.load(file_object)
+    user_found = False
+    for key, user in db.items():
+        if user['name'] == username:
+            user_found = True
+            return jsonify({'name': user['name'], 'consume_point': user['points']})
 
-#         # createuser = input('Enter your name!:')
-#         # opendb[len(opendb)] = {'name': createuser, 'points': 0}
-#         search_name = input('Enter your name!:')
-#         for i, db[i] in db.items():
-#             if (db[i]['name'] == search_name):
-#                 # Put the result into the result variable.
-#                 # result = str(db[i]['name']) + ' ' + str(db[i]['points'])
-#                 print(str(db[i]['name']) + ' ' + str(db[i]['points']))
-#                 print('How many points increase?')
-#                 input_points = int(input('Enter points:'))
-#                 # If deacrese do
-#                 Resultpoints = int(db[i]['points']) + input_points
-#                 # print(Resultpoints)
-#                 result = str(db[i]['name']) + ' ' + str(Resultpoints)
-#                 db[i] = {'name': search_name, 'points': Resultpoints}
-#                 break
-#             else:
-#                 return 'Not found user'
+    if not user_found:
+        return jsonify({'error': 'User not found'}), 404
 
-#     with open(userlistjson, 'w') as file_object:
-#         json.dump(db, file_object)  # converting dictionary to json file.
 
-#     return result  # How to bring up the json file into WEB?
+@app.route('/api/transaction_history', methods=['GET'])
+def get_transaction_history():
+    username = request.args.get('username')
+
+    if not username:
+        return jsonify({'error': 'Username is required'}), 400
+
+    try:
+        with open(userhistoryjson, 'r') as file_object:
+            all_transactions = json.load(file_object)
+    except FileNotFoundError:
+        return jsonify({'error': 'Transaction history not found'}), 404
+
+    user_transactions = [transaction for transaction in all_transactions.values(
+    ) if transaction['name'] == username]
+
+    return jsonify(user_transactions), 200
 
 
 def openWebPage():
